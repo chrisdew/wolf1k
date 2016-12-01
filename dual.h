@@ -2,6 +2,7 @@
 #define __DUAL_H
 
 #include <stdint.h>
+#include <stdio.h>
 
 #define NORTH 0
 #define EAST  90
@@ -38,6 +39,11 @@ struct wpole {
     int8_t colour;
 };
 
+struct wpoles {
+    int8_t num;
+    struct wpole ob[MAX_WALLS];
+};
+
 struct camera {
     int16_t x;
     int16_t y;
@@ -50,6 +56,12 @@ struct cpole {
     int8_t colour;
 };
 
+struct cpoles {
+    int8_t num;
+    struct cpole ob[MAX_WALLS];
+};
+
+
 struct spole { // screen pole
     int16_t p; // horizontal position
     int16_t h; // vertical height
@@ -57,6 +69,12 @@ struct spole { // screen pole
     //struct spole *next;
     //struct spole *prev;
 };
+
+struct spoles {
+    int8_t num;
+    struct spole ob[MAX_WALLS];
+};
+
 
 /*
 struct ppole { // (screen) panel poles
@@ -76,23 +94,46 @@ struct panel { // panel
     int8_t colour;
 };
 
+struct panels {
+    int8_t num;
+    struct panel ob[MAX_WALLS];
+};
+
 struct lpanel {
     int16_t lp;
     int16_t rp;
     int8_t colour;
 };
 
-struct lpole { // panel (screen) poles
-    int16_t p; // horizontal position
-    int16_t h; // vertical height
-    int8_t start_of;
-    int8_t end_of;
-    int8_t colour;
+struct lpanels {
+    int8_t num;
+    struct lpanel ob[MAX_WALLS];
 };
 
-struct rle { // run length encoding
+struct crit_point { // panel (screen) poles
+    int16_t p; // horizontal position
+    int8_t panel_idx; // index into sorted panels->ob
+    int8_t is_start; // 1 - is start, 0 - is end
+};
+
+struct crit_points {
+    int8_t num;
+    struct crit_point ob[MAX_WALLS * 2];
+};
+
+struct rle {
     uint16_t start;
     uint8_t colour;
+};
+
+struct colour {
+    uint16_t start;
+    uint8_t colour;
+};
+
+struct colours {
+    int8_t num;
+    struct colour ob[MAX_WALLS];
 };
 
 extern struct wpole wpoles[MAX_WALLS_PLUS_ONE];
@@ -101,12 +142,13 @@ extern struct camera camera;
 // run once per frame
 void wpoles_to_cpoles(struct wpole *wpoles, struct cpole *cpoles_out);          // rotate
 void clip_cpoles(struct cpole *cpoles, struct cpole *cpoles_out);               // clip
-void cpoles_to_spoles(struct cpole *cpoles, struct spole *spoles_out);          // project into screen coordinates
-void spoles_to_panels(struct spole *spoles, struct panel *panels_out);          // filter out
+void cpoles_to_spoles(struct cpoles *cpoles, struct spoles *spoles_out);          // project into screen coordinates
+void spoles_to_panels(struct spoles *spoles, struct panels *panels_out);          // filter out
+void sort_panels_by_distance(struct panels *panels);
 
 // run once per scanline - this is time critical
-void panels_to_lpoles(uint16_t line,struct panel *panels, struct lpole *lpoles_out);         // filter out
-void sort_lpoles(struct lpole *lpoles_io);               // sort
-void lpoles_to_rles(struct lpole *lpoles, struct rle *rles_out); // project
+void panels_to_crit_points(uint16_t line, struct panels *panels, struct crit_points *crit_points_out);
+void sort_crit_points(struct crit_points *crit_points_io);               // sort
+void crit_points_to_rles(struct crit_point *crit_points, struct rle *rles_out); // project
 
 #endif
