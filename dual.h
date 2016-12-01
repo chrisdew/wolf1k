@@ -149,6 +149,6 @@ void sort_panels_by_distance(struct panels *panels);
 // run once per scanline - this is time critical
 void panels_to_crit_points(uint16_t line, struct panels *panels, struct crit_points *crit_points_out);
 void sort_crit_points(struct crit_points *crit_points_io);               // sort
-void crit_points_to_rles(struct crit_point *crit_points, struct rle *rles_out); // project
+void crit_points_to_colours(struct crit_points *crit_points, struct colours *colours_out); // project
 
 #endif

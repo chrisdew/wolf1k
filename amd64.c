@@ -13,18 +13,18 @@ static struct cpoles cpoles = { // TODO: this should be calculated from "wpoles"
         {
                 {0, 3, CYAN},
                 {0, 2, YELLOW},
-                {1, 2, CYAN},
-                {1, 3, YELLOW},
+                {1, 2, GREEN},
+                {1, 3, RED},
                 {2, 3, CYAN},
                 {2, 1, YELLOW},
-                {-1, 1, CYAN},
-                {-1, 3, YELLOW},
+                {-1, 1, GREEN},
+                {-1, 3, RED},
         }
 };
 static struct spoles spoles; // sorted by screen position left to right
 static struct panels panels;
 static struct crit_points crit_points;
-static struct rle rles[MAX_WALLS_PLUS_ONE];
+static struct colours colours;
 
 void draw_scanline(SDL_Renderer *renderer, uint16_t line, struct rle *rles) {
     uint16_t p = 0;
@@ -35,7 +35,7 @@ void draw_scanline(SDL_Renderer *renderer, uint16_t line, struct rle *rles) {
     }
 }
 
-void draw_frame(SDL_Renderer *renderer, struct panels *panels, struct crit_points* crit_points) {
+void draw_frame(SDL_Renderer *renderer, struct panels *panels, struct crit_points* crit_points, struct colours *colours) {
     SDL_SetRenderDrawColor(renderer, 64, 64, 64, 255);
     SDL_RenderClear(renderer);
 
@@ -43,6 +43,8 @@ void draw_frame(SDL_Renderer *renderer, struct panels *panels, struct crit_point
         panels_to_crit_points(line, panels, crit_points);
         sort_crit_points(crit_points);
         printf("crit_points->num == %d\n", crit_points->num);
+        crit_points_to_colours(crit_points, colours);
+        printf("colours->num == %d\n", colours->num);
 	    //sort_crit_points(crit_points);
         //crit_points_to_rles(crit_points, rles);
         //draw_scanline(renderer, line, rles);
@@ -91,7 +93,7 @@ int main() {
     spoles_to_panels(&spoles, &panels);
     sort_panels_by_distance(&panels);
     printf("panels.num == %d\n", panels.num);
-    draw_frame(renderer, &panels, &crit_points);
+    draw_frame(renderer, &panels, &crit_points, &colours);
     SDL_Delay(1000);
 
 

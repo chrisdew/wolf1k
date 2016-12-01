@@ -26,24 +26,6 @@ void cpoles_to_spoles(struct cpoles *cpoles, struct spoles *spoles_out) {
         spole->h = (uint16_t) (HALF_SCREEN_HEIGHT / cpole->d);
     }
     spoles_out->num = cpoles->num;
-
-    /*
-    struct cpole *cpole = cpoles; // only one declarations of one type may be made in a for loop
-    struct spole *spole = spoles_out; // so we make both here
-
-    // transform to screen coordinates
-    do {
-        spole->p = (uint16_t) ((HALF_SCREEN_WIDTH * cpole->c / cpole->d) + HALF_SCREEN_WIDTH);
-        spole->h = (uint16_t) (HALF_SCREEN_HEIGHT / cpole->d);
-
-        cpole++;
-        spole++;
-    } while (cpole->c != cpoles->c || cpole->d != cpoles->d);
-    *spole = *spoles_out; // tie the knot
-    spole->colour = COLOUR_END;
-
-    */
-
 }
 
 void spoles_to_panels(struct spoles *spoles, struct panels *panels) {
@@ -125,6 +107,12 @@ void sort_crit_points(struct crit_points *crit_points_io) {
                 *b = tmp;
                 sorted = 0;
                 printf("X");
+            } else if ((b->p == a->p) && b->is_start) {
+                tmp = *a;
+                *a = *b;
+                *b = tmp;
+                sorted = 0;
+                printf("x");
             } else {
                 printf(".");
             }
@@ -133,7 +121,18 @@ void sort_crit_points(struct crit_points *crit_points_io) {
     }
 }
 
-void crit_points_to_rles(struct crit_point *crit_points, struct rle *rles_out) {
+void crit_points_to_colours(struct crit_points *crit_points, struct colours *colours_out) {
+    uint32_t tracker = 0x00000000;
+    struct colour *colour = colours_out->ob;
+    for (int i = 0; i < crit_points->num; i++) {
+        // loop through all crit_points at p
+        struct crit_point *crit_point = crit_points->ob + i;
+        int16_t p = crit_point->p;
+        for (; crit_point->p == p && i < crit_points->num; crit_point++, i++) {
+            // alter tracker here
+        }
+        // TODO: write to colours_out here, according to tracker
+    }
 }
 
 int16_t sine(uint16_t ang) {
