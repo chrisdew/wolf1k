@@ -3,6 +3,7 @@
 
 #include <stdint.h>
 #include <stdio.h>
+#include <math.h>
 
 #define NORTH 0
 #define EAST  90
@@ -80,7 +81,7 @@ struct spoles {
 struct ppole { // (screen) panel poles
     int16_t p; // horizontal position
     int16_t h; // vertical height
-    int8_t colour;
+    int8_t change;
     int8_t ending:1;
     int8_t panel;
 };
@@ -113,7 +114,8 @@ struct lpanels {
 struct crit_point { // panel (screen) poles
     int16_t p; // horizontal position
     int8_t panel_idx; // index into sorted panels->ob
-    int8_t is_start; // 1 - is start, 0 - is end
+    // each panel will start and stop exactly once, and the start will not be right of the stop
+    //int8_t is_start; // 1 - is start, 0 - is end
 };
 
 struct crit_points {
@@ -121,19 +123,14 @@ struct crit_points {
     struct crit_point ob[MAX_WALLS * 2];
 };
 
-struct rle {
+struct change {
     uint16_t start;
     uint8_t colour;
 };
 
-struct colour {
-    uint16_t start;
-    uint8_t colour;
-};
-
-struct colours {
+struct changes {
     int8_t num;
-    struct colour ob[MAX_WALLS];
+    struct change ob[MAX_WALLS];
 };
 
 extern struct wpole wpoles[MAX_WALLS_PLUS_ONE];
@@ -149,6 +146,6 @@ void sort_panels_by_distance(struct panels *panels);
 // run once per scanline - this is time critical
 void panels_to_crit_points(uint16_t line, struct panels *panels, struct crit_points *crit_points_out);
 void sort_crit_points(struct crit_points *crit_points_io);               // sort
-void crit_points_to_colours(struct crit_points *crit_points, struct colours *colours_out); // project
+void crit_points_to_changes(struct crit_points *crit_points, struct panels *sorted_panels, struct changes *changes_out);
 
 #endif

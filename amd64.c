@@ -24,30 +24,28 @@ static struct cpoles cpoles = { // TODO: this should be calculated from "wpoles"
 static struct spoles spoles; // sorted by screen position left to right
 static struct panels panels;
 static struct crit_points crit_points;
-static struct colours colours;
+static struct changes changes;
 
-void draw_scanline(SDL_Renderer *renderer, uint16_t line, struct rle *rles) {
+void draw_scanline(SDL_Renderer *renderer, uint16_t line, struct changes *changes) {
     uint16_t p = 0;
-    struct rle *rle = rles;
-    while (rle->colour != COLOUR_END) {
-        SDL_SetRenderDrawColor(renderer, 255 * !!(rle->colour & 0b100), 255 * !!(rle->colour & 0b010), 255 * !!(rle->colour & 0b001), 255);
-        SDL_RenderDrawLine(renderer, rle->start, line, SCREEN_WIDTH - 1, line);
+    for (int i = 0; i < changes->num; i++) {
+        struct change *change = changes->ob + i;
+        SDL_SetRenderDrawColor(renderer, 255 * !!(change->colour & 0b100), 255 * !!(change->colour & 0b010), 255 * !!(change->colour & 0b001), 255);
+        SDL_RenderDrawLine(renderer, change->start, line, SCREEN_WIDTH - 1, line);
     }
 }
 
-void draw_frame(SDL_Renderer *renderer, struct panels *panels, struct crit_points* crit_points, struct colours *colours) {
-    SDL_SetRenderDrawColor(renderer, 64, 64, 64, 255);
-    SDL_RenderClear(renderer);
+void draw_frame(SDL_Renderer *renderer, struct panels *panels, struct crit_points* crit_points, struct changes *changes) {
+    //SDL_SetRenderDrawColor(renderer, 64, 64, 64, 255);
+    //SDL_RenderClear(renderer);
 
-    for (uint16_t line = 319; line < 320; line++) {
+    for (uint16_t line = 0; line < SCREEN_HEIGHT; line++) {
         panels_to_crit_points(line, panels, crit_points);
         sort_crit_points(crit_points);
-        printf("crit_points->num == %d\n", crit_points->num);
-        crit_points_to_colours(crit_points, colours);
-        printf("colours->num == %d\n", colours->num);
-	    //sort_crit_points(crit_points);
-        //crit_points_to_rles(crit_points, rles);
-        //draw_scanline(renderer, line, rles);
+        //printf("crit_points->num == %d\n", crit_points->num);
+        crit_points_to_changes(crit_points, panels, changes);
+        //printf("changes->num == %d\n", changes->num);
+        draw_scanline(renderer, line, changes);
     }
 
     SDL_RenderPresent(renderer);
@@ -78,8 +76,6 @@ int main() {
     SDL_Renderer *renderer;
     SDL_RenderSetLogicalSize(renderer, SCREEN_WIDTH, SCREEN_HEIGHT);
 
-    printf("%lu\n", sizeof(struct rle));
-
     if (SDL_Init(SDL_INIT_EVERYTHING) != 0) return -1;
     window = SDL_CreateWindow( "Server", 100, 100, SCREEN_WIDTH, SCREEN_HEIGHT, 0 );
     if (window == NULL) return -2;
@@ -93,8 +89,8 @@ int main() {
     spoles_to_panels(&spoles, &panels);
     sort_panels_by_distance(&panels);
     printf("panels.num == %d\n", panels.num);
-    draw_frame(renderer, &panels, &crit_points, &colours);
-    SDL_Delay(1000);
+    draw_frame(renderer, &panels, &crit_points, &changes);
+    SDL_Delay(9000);
 
 
     return 0;
