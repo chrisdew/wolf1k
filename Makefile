@@ -10,5 +10,5 @@ dual.s: dual.c dual.h Makefile
 	$(ARMCC) -std=c99 -mcpu=cortex-m0plus -mthumb -Os -S dual.c -o dual.s
 
 amd64: amd64.c amd64.h dual.c dual.h Makefile
-	clang amd64.c dual.c -lSDL2 -o amd64
+	clang -g amd64.c dual.c -lSDL2 -o amd64
 

@@ -4,26 +4,104 @@
 
 #include "dual.h"
 
-struct wpole wpoles[MAX_WALLS_PLUS_ONE] = {
-    {-1,3,1},
-    {-1,1,2},
-    { 2,1,3},
-    { 2,3,4},
-    { 1,3,5},
-    { 1,2,6},
-    { 0,2,7},
-    { 0,3,8},
-    {-1,3,1} // must be same as first (a loop of wall poles)
+int16_t mulsine(int16_t num, uint16_t ang) {
+    ang = ang % 360; 
+    // https://en.wikipedia.org/wiki/Bhaskara_I's_sine_approximation_formula
+    int sign = 1;
+    if (ang > 180) { 
+	ang -= 180;
+        sign = -1;
+    }
+    return (int16_t) (sign * ((int32_t)num * 4 * ang * (180 - ang) / (40500 - ang * (180 - ang))));
 };
-struct camera camera = {.x = 0, .y = 0, .facing = NORTH};
+
+int16_t mulcos(int16_t num, uint16_t ang) {
+    return mulsine(num, ang + 90);
+}
+
+
+void wpoles_to_cpoles(struct wpoles *wpoles, struct camera *camera, struct cpoles *cpoles_out) {
+    for (int i = 0; i < wpoles->num; i++) {
+        struct wpole *wpole = wpoles->ob + i;
+        struct cpole *cpole = cpoles_out->ob + i;
+
+        // TODO replace these assignments with a displacement and rotation by the camera position and facing
+        //cpole->c = wpole->x - camera->x;
+        //cpole->d = wpole->y - camera->y;
+        int16_t x = wpole->x - camera->x;
+        int16_t y = wpole->y - camera->y;
+        cpole->c = mulcos(x, camera->facing) - mulsine(y, camera->facing);
+        cpole->d = mulsine(x, camera->facing) + mulcos(y, camera->facing);
+        cpole->colour = wpole->colour;
+	printf(".\n");
+    }
+    cpoles_out->num = wpoles->num;
+    printf("q\n");
+}
+
+void cpoles_to_cpanels(struct cpoles *cpoles, struct cpanels *cpanels_out) {
+    struct cpanel *cpanel = cpanels_out->ob;
+    cpanels_out->num = 0;
+    for (int i = 0; i < cpoles->num; i++) {
+        struct cpole *left = cpoles->ob + i;
+        struct cpole *right = cpoles->ob + ((i + 1) % cpoles->num);
+        printf("%d %d", left->c, right->d);
+
+        // exclude cpanels where panel is behind viewer
+        if (left->d < 0 && right->d < 0) {
+            printf(" X\n");
+            continue;
+        }
+
+        // TODO: modify endpoints to bring them within view
+
+        cpanel->lc = left->c;
+        cpanel->ld = left->d;
+        cpanel->colour = left->colour;
+        printf("colour == %d\n", cpanel->colour);
+        cpanel->rc = right->c;
+        cpanel->rd = right->d;
+
+        cpanel++;
+        cpanels_out->num++;
+        printf("\n");
+    }
+}
+
+void cpanels_to_panels(struct cpanels *cpanels, struct panels *panels_out) {
+    panels_out->num = 0;
+    struct panel *panel = panels_out->ob;
+    for (int i = 0; i < cpanels->num; i++) {
+	struct cpanel *cpanel = cpanels->ob + i;
+        panel->lp = (uint16_t) ((HALF_SCREEN_WIDTH * cpanel->lc / cpanel->ld) + HALF_SCREEN_WIDTH);
+        panel->lh = (uint16_t) (HALF_SCREEN_WIDTH * THOU / 2 / cpanel->ld);
+        panel->rp = (uint16_t) ((HALF_SCREEN_WIDTH * cpanel->rc / cpanel->rd) + HALF_SCREEN_WIDTH);
+        panel->rh = (uint16_t) (HALF_SCREEN_WIDTH * THOU / 2 / cpanel->rd);
+	panel->colour = cpanel->colour;
+	printf("%d %d %d %d %d\n", panel->lp, panel->lh, panel->rp, panel->rh, panel->colour);
+
+        // exclude back faces
+        if (panel->lp >= panel->rp) {
+            printf(" X\n");
+            continue;
+        }
+
+	
+	panel++;
+    }
+    panels_out->num = panel - panels_out->ob;
+}
 
 void cpoles_to_spoles(struct cpoles *cpoles, struct spoles *spoles_out) {
     for (int i = 0; i < cpoles->num; i++) {
         struct cpole *cpole = cpoles->ob + i;
         struct spole *spole = spoles_out->ob + i;
 
+	printf("%d %d\n", cpole->c, cpole->d);
         spole->p = (uint16_t) ((HALF_SCREEN_WIDTH * cpole->c / cpole->d) + HALF_SCREEN_WIDTH);
-        spole->h = (uint16_t) (HALF_SCREEN_WIDTH / 2 / cpole->d);
+	printf("w\n");
+        spole->h = (uint16_t) (HALF_SCREEN_WIDTH * THOU / 2 / cpole->d);
+	printf("y\n");
         spole->colour = cpole->colour;
     }
     spoles_out->num = cpoles->num;
@@ -43,6 +121,8 @@ void spoles_to_panels(struct spoles *spoles, struct panels *panels) {
             printf(" X\n");
             continue;
         }
+
+        // TODO: exclude
 
         panel->lp = left->p;
         panel->lh = left->h;
@@ -95,11 +175,11 @@ void panels_to_crit_points(uint16_t line, struct panels *panels, struct crit_poi
 
         if (offset != 0 && panel->lh >= offset && panel->rh < offset) {
             ladj = (offset - panel->rh) * w / h;
-            printf("ladj == %d\n", ladj);
+            //printf("ladj == %d\n", ladj);
         }
         if (offset != 0 && panel->lh < offset && panel->rh >= offset) {
             radj = (offset - panel->lh) * w / h;
-            printf("radj == %d\n", radj);
+            //printf("radj == %d\n", radj);
         }
 
         crit_point->p = panel->lp - radj;
@@ -183,7 +263,3 @@ void crit_points_to_changes(struct crit_points *crit_points, struct panels *sort
     }
 }
 
-int16_t mulsine(int16_t num, uint16_t ang) {
-    // https://en.wikipedia.org/wiki/Bhaskara_I's_sine_approximation_formula
-    return (int16_t) ((int32_t)num * 4 * ang * (180 - ang) / (40500 - ang * (180 - ang)));
-};

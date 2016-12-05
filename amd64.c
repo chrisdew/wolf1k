@@ -8,20 +8,23 @@
 
 #include "amd64.h"
 
-static struct cpoles cpoles = { // TODO: this should be calculated from "wpoles" and "camera"
+static struct wpoles wpoles = {
         MAX_WALLS,
         {
-                {0, 3, CYAN},
-                {0, 2, YELLOW},
-                {1, 2, GREEN},
-                {1, 3, RED},
-                {2, 3, CYAN},
-                {2, 1, YELLOW},
-                {-1, 1, GREEN},
-                {-1, 3, RED},
+                {0 * THOU, 3 * THOU, CYAN},
+                {0 * THOU, 2 * THOU, YELLOW},
+                {1 * THOU, 2 * THOU, GREEN},
+                {1 * THOU, 3 * THOU, RED},
+                {2 * THOU, 3 * THOU, CYAN},
+                {2 * THOU, 1 * THOU, YELLOW},
+                {-1 * THOU, 1 * THOU, GREEN},
+                {-1 * THOU, 3 * THOU, RED},
         }
 };
-static struct spoles spoles; // sorted by screen position left to right
+struct camera camera = {.x = -500, .y = 0, .facing = 10};
+static struct cpoles cpoles;
+static struct spoles spoles;
+static struct cpanels cpanels;
 static struct panels panels;
 static struct crit_points crit_points;
 static struct changes changes;
@@ -82,16 +85,58 @@ int main() {
     renderer = SDL_CreateRenderer( window, -1, SDL_RENDERER_ACCELERATED );
     if (renderer == NULL) return -3;
 
+printf("a\n");
+    wpoles_to_cpoles(&wpoles, &camera, &cpoles);
+printf("b\n");
     cpoles_to_spoles(&cpoles, &spoles);
+printf("c\n");
     draw(renderer, &spoles);
+printf("d\n");
     SDL_Delay(1000);
 
+/*
     spoles_to_panels(&spoles, &panels);
     sort_panels_by_distance(&panels);
     printf("panels.num == %d\n", panels.num);
-    draw_frame(renderer, &panels, &crit_points, &changes);
-    SDL_Delay(9000);
+*/
+    wpoles_to_cpoles(&wpoles, &camera, &cpoles);
+    cpoles_to_cpanels(&cpoles, &cpanels);
+    cpanels_to_panels(&cpanels, &panels);
+    sort_panels_by_distance(&panels);
+    printf("panels.num == %d\n", panels.num);
 
+    for (int16_t ang = 0; ang < 360; ang += 45) {
+        printf("ang: %d, sine: %d, cos: %d\n", ang, mulsine(1000, ang), mulcos(1000, ang));
+    }
+
+    int loop = 1;
+    while(loop) {
+	printf("loop\n");
+        draw_frame(renderer, &panels, &crit_points, &changes);
+	SDL_Delay(160);
+	SDL_Event event;
+	while (SDL_PollEvent(&event)) {
+            if (event.type == SDL_QUIT) {
+		loop = 0;
+	    } else if (event.type == SDL_KEYDOWN) {
+		switch (event.key.keysym.sym) {
+		    case SDLK_RIGHT:
+			printf("right\n");
+			break;
+		    case SDLK_LEFT:
+			printf("left\n");
+			break;
+		    case SDLK_DOWN:
+			break;
+		    case SDLK_UP:
+			printf("up\n");
+			break;
+		    default :
+			break;
+		}
+	    }
+	}
+    }
 
     return 0;
 }

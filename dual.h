@@ -4,6 +4,9 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <math.h>
+#include <stdlib.h>
+
+#define THOU 1000
 
 #define NORTH 0
 #define EAST  90
@@ -67,6 +70,7 @@ struct spole { // screen pole
     int16_t p; // horizontal position
     int16_t h; // vertical height
     int8_t colour;
+    int8_t offscreen;
     //struct spole *next;
     //struct spole *prev;
 };
@@ -86,6 +90,18 @@ struct ppole { // (screen) panel poles
     int8_t panel;
 };
 */
+struct cpanel { // panel
+    int16_t lc;
+    int16_t ld;
+    int16_t rc;
+    int16_t rd;
+    int8_t colour;
+};
+
+struct cpanels {
+    int8_t num;
+    struct cpanel ob[MAX_WALLS];
+};
 
 struct panel { // panel
     int16_t lp; // horizontal position
@@ -133,15 +149,20 @@ struct changes {
     struct change ob[MAX_WALLS];
 };
 
-extern struct wpole wpoles[MAX_WALLS_PLUS_ONE];
-extern struct camera camera;
+int16_t mulsine(int16_t num, uint16_t ang);
+int16_t mulcos(int16_t num, uint16_t ang);
 
 // run once per frame
-void wpoles_to_cpoles(struct wpole *wpoles, struct cpole *cpoles_out);          // rotate
+void wpoles_to_cpoles(struct wpoles *wpoles, struct camera *camera, struct cpoles *cpoles_out);          // rotate
 void clip_cpoles(struct cpole *cpoles, struct cpole *cpoles_out);               // clip
+void cpoles_to_cpanels(struct cpoles *cpoles, struct cpanels *cpanels_out);          // project into screen coordinates
+void cpanels_to_panels(struct cpanels *cpanels, struct panels *panels_out);          // project into screen coordinates
+void sort_panels_by_distance(struct panels *panels);
+
+// obsolete
 void cpoles_to_spoles(struct cpoles *cpoles, struct spoles *spoles_out);          // project into screen coordinates
 void spoles_to_panels(struct spoles *spoles, struct panels *panels_out);          // filter out
-void sort_panels_by_distance(struct panels *panels);
+
 
 // run once per scanline - this is time critical
 void panels_to_crit_points(uint16_t line, struct panels *panels, struct crit_points *crit_points_out);
