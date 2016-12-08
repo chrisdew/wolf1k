@@ -140,8 +140,8 @@ struct crit_points {
 };
 
 struct change {
-    uint16_t start;
-    uint8_t colour;
+    int16_t start;
+    int8_t colour;
 };
 
 struct changes {
@@ -156,6 +156,7 @@ int16_t mulcos(int16_t num, uint16_t ang);
 void wpoles_to_cpoles(struct wpoles *wpoles, struct camera *camera, struct cpoles *cpoles_out);          // rotate
 void clip_cpoles(struct cpole *cpoles, struct cpole *cpoles_out);               // clip
 void cpoles_to_cpanels(struct cpoles *cpoles, struct cpanels *cpanels_out);          // project into screen coordinates
+struct cpanel cpanel_clip(struct cpanel cpanel);
 void cpanels_to_panels(struct cpanels *cpanels, struct panels *panels_out);          // project into screen coordinates
 void sort_panels_by_distance(struct panels *panels);
 

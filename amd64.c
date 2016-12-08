@@ -21,7 +21,7 @@ static struct wpoles wpoles = {
                 {-1 * THOU, 3 * THOU, RED},
         }
 };
-struct camera camera = {.x = -500, .y = 0, .facing = 10};
+struct camera camera = {.x = 0, .y = 0, .facing = 0};
 static struct cpoles cpoles;
 static struct spoles spoles;
 static struct cpanels cpanels;
@@ -85,13 +85,9 @@ int main() {
     renderer = SDL_CreateRenderer( window, -1, SDL_RENDERER_ACCELERATED );
     if (renderer == NULL) return -3;
 
-printf("a\n");
     wpoles_to_cpoles(&wpoles, &camera, &cpoles);
-printf("b\n");
     cpoles_to_spoles(&cpoles, &spoles);
-printf("c\n");
     draw(renderer, &spoles);
-printf("d\n");
     SDL_Delay(1000);
 
 /*
@@ -99,43 +95,63 @@ printf("d\n");
     sort_panels_by_distance(&panels);
     printf("panels.num == %d\n", panels.num);
 */
-    wpoles_to_cpoles(&wpoles, &camera, &cpoles);
-    cpoles_to_cpanels(&cpoles, &cpanels);
-    cpanels_to_panels(&cpanels, &panels);
-    sort_panels_by_distance(&panels);
-    printf("panels.num == %d\n", panels.num);
 
     for (int16_t ang = 0; ang < 360; ang += 45) {
         printf("ang: %d, sine: %d, cos: %d\n", ang, mulsine(1000, ang), mulcos(1000, ang));
     }
 
     int loop = 1;
+    int16_t dx, dy, mc, ms;
     while(loop) {
-	printf("loop\n");
+        printf("loop\n");
+        wpoles_to_cpoles(&wpoles, &camera, &cpoles);
+        cpoles_to_cpanels(&cpoles, &cpanels);
+        cpanels_to_panels(&cpanels, &panels);
+        sort_panels_by_distance(&panels);
+        printf("panels.num == %d\n", panels.num);
         draw_frame(renderer, &panels, &crit_points, &changes);
-	SDL_Delay(160);
-	SDL_Event event;
-	while (SDL_PollEvent(&event)) {
+        SDL_Delay(1600);
+        SDL_Event event;
+        while (SDL_PollEvent(&event)) {
             if (event.type == SDL_QUIT) {
-		loop = 0;
-	    } else if (event.type == SDL_KEYDOWN) {
-		switch (event.key.keysym.sym) {
-		    case SDLK_RIGHT:
-			printf("right\n");
-			break;
-		    case SDLK_LEFT:
-			printf("left\n");
-			break;
-		    case SDLK_DOWN:
-			break;
-		    case SDLK_UP:
-			printf("up\n");
-			break;
-		    default :
-			break;
-		}
-	    }
-	}
+                loop = 0;
+            } else if (event.type == SDL_KEYDOWN) {
+                switch (event.key.keysym.sym) {
+                    case SDLK_RIGHT:
+                        printf("right\n");
+                        camera.facing = (camera.facing - 30 + 360) % 360;
+                        printf("x: %d, y: %d, facing: %d\n", camera.x, camera.y, camera.facing);
+                        break;
+                    case SDLK_LEFT:
+                        printf("left\n");
+                        camera.facing = (camera.facing + 30 + 360) % 360;
+                        printf("x: %d, y: %d, facing: %d\n", camera.x, camera.y, camera.facing);
+                        break;
+                    case SDLK_DOWN:
+                        printf("down\n");
+                        mc = mulcos(100, camera.facing);
+                        ms = mulsine(100, camera.facing);
+                        dx = -ms;
+                        dy = mc;
+                        camera.x -= dx;
+                        camera.y -= dy;
+                        printf("mc: %d, ms: %d, dx: %d, dy: %d, x: %d, y: %d, facing: %d\n", mc, ms, dx, dy, camera.x, camera.y, camera.facing);
+                        break;
+                    case SDLK_UP:
+                        printf("up\n");
+                        mc = mulcos(100, camera.facing);
+                        ms = mulsine(100, camera.facing);
+                        dx = -ms;
+                        dy = mc;
+                        camera.x += dx;
+                        camera.y += dy;
+                        printf("mc: %d, ms: %d, dx: %d, dy: %d, x: %d, y: %d, facing: %d\n", mc, ms, dx, dy, camera.x, camera.y, camera.facing);
+                        break;
+                    default :
+                        break;
+                }
+            }
+        }
     }
 
     return 0;

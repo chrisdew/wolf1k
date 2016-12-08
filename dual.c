@@ -5,7 +5,7 @@
 #include "dual.h"
 
 int16_t mulsine(int16_t num, uint16_t ang) {
-    ang = ang % 360; 
+    ang = (ang + 360) % 360;
     // https://en.wikipedia.org/wiki/Bhaskara_I's_sine_approximation_formula
     int sign = 1;
     if (ang > 180) { 
@@ -30,13 +30,11 @@ void wpoles_to_cpoles(struct wpoles *wpoles, struct camera *camera, struct cpole
         //cpole->d = wpole->y - camera->y;
         int16_t x = wpole->x - camera->x;
         int16_t y = wpole->y - camera->y;
-        cpole->c = mulcos(x, camera->facing) - mulsine(y, camera->facing);
-        cpole->d = mulsine(x, camera->facing) + mulcos(y, camera->facing);
+        cpole->c = mulcos(x, 720 - camera->facing) - mulsine(y, 720 - camera->facing);
+        cpole->d = mulsine(x, 720 - camera->facing) + mulcos(y, 720 - camera->facing);
         cpole->colour = wpole->colour;
-	printf(".\n");
     }
     cpoles_out->num = wpoles->num;
-    printf("q\n");
 }
 
 void cpoles_to_cpanels(struct cpoles *cpoles, struct cpanels *cpanels_out) {
@@ -68,23 +66,82 @@ void cpoles_to_cpanels(struct cpoles *cpoles, struct cpanels *cpanels_out) {
     }
 }
 
+struct cpanel cpanel_clip(struct cpanel cpanel) {
+    struct cpanel ret = {};
+
+    int16_t lc = ret.lc = cpanel.lc;
+    int16_t ld = ret.ld = cpanel.ld;
+    int16_t rc = ret.rc = cpanel.rc;
+    int16_t rd = ret.rd = cpanel.rd;
+    ret.colour = cpanel.colour;
+
+    int8_t left_in_view = ld > abs(lc);
+    int8_t right_in_view = rd > abs(rc);
+
+    if (!right_in_view && left_in_view) {
+        int nom = (rd - ld);
+        int denom = (rc - lc);
+        if (denom != 0 && (nom / denom) != 1) {
+            int m = THOU * nom / denom;
+            printf("r normal condition %d/%d = %d ", nom, denom, m);
+            ret.rc = (THOU * ld - m * lc) / (THOU - m);
+            ret.rd = ret.rc;
+        } else if (nom != 0 && (denom / nom) != 1) {
+            int m = THOU * denom / nom;
+            printf("r reversed condition %d ", m);
+            ret.rc = (THOU * lc - m * ld) / (THOU - m);
+            ret.rd = ret.rc;
+        } else {
+            printf("r odd condition ");
+        }
+        printf("%d %d\n", ret.rc, ret.rd);
+    }
+
+    if (!left_in_view && right_in_view) {
+        int nom = (ld - rd);
+        int denom = (lc - rc);
+        if (denom != 0 && (nom / denom) != 1) {
+            int m = THOU * nom / denom;
+            printf("l normal condition %d/%d = %d ", nom, denom, m);
+            ret.lc = (THOU * rd - m * rc) / (THOU - m);
+            ret.ld = -ret.lc;
+        } else if (nom != 0 && (denom / nom) != 1) {
+            int m = THOU * denom / nom;
+            printf("l reversed condition %d ", m);
+            ret.lc = (THOU * rc - m * rd) / (THOU - m);
+            ret.ld = -ret.lc;
+        } else {
+            printf("l odd condition ");
+        }
+        printf("%d %d\n", ret.lc, ret.ld);
+    }
+
+    return ret;
+}
+
 void cpanels_to_panels(struct cpanels *cpanels, struct panels *panels_out) {
     panels_out->num = 0;
     struct panel *panel = panels_out->ob;
     for (int i = 0; i < cpanels->num; i++) {
-	struct cpanel *cpanel = cpanels->ob + i;
-        panel->lp = (uint16_t) ((HALF_SCREEN_WIDTH * cpanel->lc / cpanel->ld) + HALF_SCREEN_WIDTH);
-        panel->lh = (uint16_t) (HALF_SCREEN_WIDTH * THOU / 2 / cpanel->ld);
-        panel->rp = (uint16_t) ((HALF_SCREEN_WIDTH * cpanel->rc / cpanel->rd) + HALF_SCREEN_WIDTH);
-        panel->rh = (uint16_t) (HALF_SCREEN_WIDTH * THOU / 2 / cpanel->rd);
-	panel->colour = cpanel->colour;
-	printf("%d %d %d %d %d\n", panel->lp, panel->lh, panel->rp, panel->rh, panel->colour);
+	    struct cpanel *cpanel = cpanels->ob + i;
+
+        struct cpanel clipped = cpanel_clip(*cpanel);
+
+        panel->lp = (uint16_t) ((HALF_SCREEN_WIDTH * clipped.lc / clipped.ld) + HALF_SCREEN_WIDTH);
+        panel->lh = (uint16_t) (HALF_SCREEN_WIDTH * THOU / 2 / clipped.ld);
+        panel->rp = (uint16_t) ((HALF_SCREEN_WIDTH * clipped.rc / clipped.rd) + HALF_SCREEN_WIDTH);
+        panel->rh = (uint16_t) (HALF_SCREEN_WIDTH * THOU / 2 / clipped.rd);
+	    panel->colour = cpanel->colour;
+	    printf("%d %d %d %d %d\n", panel->lp, panel->lh, panel->rp, panel->rh, panel->colour);
 
         // exclude back faces
         if (panel->lp >= panel->rp) {
             printf(" X\n");
             continue;
+        } else {
+            printf(" Y\n");
         }
+
 
 	
 	panel++;
@@ -182,13 +239,13 @@ void panels_to_crit_points(uint16_t line, struct panels *panels, struct crit_poi
             //printf("radj == %d\n", radj);
         }
 
-        crit_point->p = panel->lp - radj;
+        crit_point->p = (panel->lp > radj) ? panel->lp - radj : 0;
         crit_point->panel_idx = i;
         //crit_point->is_start = 1; // each panel will start and stop exactly once, and the start will not be right of the stop
         crit_point++;
         crit_points_out->num++;
 
-        crit_point->p = panel->rp - ladj;
+        crit_point->p = (panel->rp > ladj) ? panel->rp - ladj : 0;
         crit_point->panel_idx = i;
         //crit_point->is_start = 0; // each panel will start and stop exactly once, and the start will not be right of the stop
         crit_point++;

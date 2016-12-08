@@ -12,3 +12,7 @@ dual.s: dual.c dual.h Makefile
 amd64: amd64.c amd64.h dual.c dual.h Makefile
 	clang -g amd64.c dual.c -lSDL2 -o amd64
 
+test: test.c dual.c
+	clang -g test.c dual.c -o test
+	./test
+
