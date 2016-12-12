@@ -34,6 +34,7 @@
 #define COLOUR_END 0xFF
 
 #define MIN(X, Y) (((X) < (Y)) ? (X) : (Y))
+#define ABS(X) (((X) < 0) ? -(X) : (X))
 
 
 // w - x and y are world coordinates
@@ -54,7 +55,7 @@ struct wpoles {
 struct camera {
     int16_t x;
     int16_t y;
-    int16_t facing;
+    int8_t facing;
 };
 
 struct cpole {
@@ -152,8 +153,8 @@ struct changes {
     struct change ob[MAX_WALLS];
 };
 
-int16_t mulsine(int16_t num, uint16_t ang);
-int16_t mulcos(int16_t num, uint16_t ang);
+int16_t mulsine(int16_t num, uint8_t ang);
+int16_t mulcos(int16_t num, uint8_t ang);
 
 // run once per frame
 void wpoles_to_cpoles(struct wpoles *wpoles, struct camera *camera, struct cpoles *cpoles_out);          // rotate
@@ -163,11 +164,6 @@ struct cpanel cpanel_clip(struct cpanel cpanel);
 void cpanel_print(char *prefix, struct cpanel cpanel);
 void cpanels_to_panels(struct cpanels *cpanels, struct panels *panels_out);          // project into screen coordinates
 void sort_panels_by_distance(struct panels *panels);
-
-// obsolete
-void cpoles_to_spoles(struct cpoles *cpoles, struct spoles *spoles_out);          // project into screen coordinates
-void spoles_to_panels(struct spoles *spoles, struct panels *panels_out);          // filter out
-
 
 // run once per scanline - this is time critical
 void panels_to_crit_points(uint16_t line, struct panels *panels, struct crit_points *crit_points_out);

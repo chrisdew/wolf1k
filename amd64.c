@@ -85,18 +85,7 @@ int main() {
     renderer = SDL_CreateRenderer( window, -1, SDL_RENDERER_ACCELERATED );
     if (renderer == NULL) return -3;
 
-    wpoles_to_cpoles(&wpoles, &camera, &cpoles);
-    cpoles_to_spoles(&cpoles, &spoles);
-    draw(renderer, &spoles);
-    SDL_Delay(1000);
-
-/*
-    spoles_to_panels(&spoles, &panels);
-    sort_panels_by_distance(&panels);
-    printf("panels.num == %d\n", panels.num);
-*/
-
-    for (int16_t ang = 0; ang < 360; ang += 45) {
+    for (int ang = 0; ang < 256; ang += 16) {
         printf("ang: %d, sine: %d, cos: %d\n", ang, mulsine(1000, ang), mulcos(1000, ang));
     }
 
@@ -112,12 +101,12 @@ int main() {
                 switch (event.key.keysym.sym) {
                     case SDLK_RIGHT:
                         printf("right\n");
-                        camera.facing = (camera.facing - 30 + 360) % 360;
+                        camera.facing = camera.facing - 16;
                         printf("x: %d, y: %d, facing: %d\n", camera.x, camera.y, camera.facing);
                         break;
                     case SDLK_LEFT:
                         printf("left\n");
-                        camera.facing = (camera.facing + 30 + 360) % 360;
+                        camera.facing = camera.facing + 16;
                         printf("x: %d, y: %d, facing: %d\n", camera.x, camera.y, camera.facing);
                         break;
                     case SDLK_DOWN:
