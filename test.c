@@ -7,9 +7,6 @@
 
 #include "dual.h"
 
-void cpanel_print(char *prefix, struct cpanel cpanel) {
-    printf("%s: panel(lc:%d,ld:%d,rc:%d,rd:%d,colour:%d)\n", prefix, cpanel.lc, cpanel.ld, cpanel.rc, cpanel.rd, cpanel.colour);
-}
 
 int main() {
     struct cpanel before;
@@ -45,5 +42,20 @@ int main() {
     cpanel_print("before", before);
     cpanel_print(" after", after);
 
+    printf("\n");
+    before = (struct cpanel) {.lc = -1000, .ld = 500, .rc = -1000, .rd = 3000, .colour = 1};
+    after = cpanel_clip(before);
+    cpanel_print("before", before);
+    cpanel_print(" after", after);
+
+    before = (struct cpanel) {.lc = 250, .ld = -105, .rc = -250, .rd = 1895, .colour = 7};
+    after = cpanel_clip(before);
+    cpanel_print("before", before);
+    cpanel_print(" after", after);
+
+    before = (struct cpanel) {.lc = -363, .ld = -130, .rc = 636, .rd = 1599, .colour = 7};
+    after = cpanel_clip(before);
+    cpanel_print("before", before);
+    cpanel_print(" after", after);
     return 0;
 }

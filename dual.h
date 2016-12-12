@@ -33,6 +33,9 @@
 
 #define COLOUR_END 0xFF
 
+#define MIN(X, Y) (((X) < (Y)) ? (X) : (Y))
+
+
 // w - x and y are world coordinates
 // c - c and d are camera coordinates
 // s - p and q are screen coordinates
@@ -157,6 +160,7 @@ void wpoles_to_cpoles(struct wpoles *wpoles, struct camera *camera, struct cpole
 void clip_cpoles(struct cpole *cpoles, struct cpole *cpoles_out);               // clip
 void cpoles_to_cpanels(struct cpoles *cpoles, struct cpanels *cpanels_out);          // project into screen coordinates
 struct cpanel cpanel_clip(struct cpanel cpanel);
+void cpanel_print(char *prefix, struct cpanel cpanel);
 void cpanels_to_panels(struct cpanels *cpanels, struct panels *panels_out);          // project into screen coordinates
 void sort_panels_by_distance(struct panels *panels);
 

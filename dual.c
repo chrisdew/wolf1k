@@ -78,37 +78,66 @@ struct cpanel cpanel_clip(struct cpanel cpanel) {
     int8_t left_in_view = ld > abs(lc);
     int8_t right_in_view = rd > abs(rc);
 
-    if (!right_in_view && left_in_view) {
+    if (cpanel.ld < 1 && cpanel.rd < 1) {
+        printf("behind you\n");
+        return (struct cpanel) {};
+    }
+
+    if (!left_in_view && !right_in_view) {
+        if (!(ld > 0 && rd > 0 && lc < 0 && rc > 0)) {
+            printf("out of sight\n");
+            return (struct cpanel) {};
+        }
+    }
+
+    if (!right_in_view && rd < 1) {
         int nom = (rd - ld);
         int denom = (rc - lc);
-        if (denom != 0 && (nom / denom) != 1) {
-            int m = THOU * nom / denom;
-            printf("r normal condition %d/%d = %d ", nom, denom, m);
-            ret.rc = (THOU * ld - m * lc) / (THOU - m);
-            ret.rd = ret.rc;
-        } else if (nom != 0 && (denom / nom) != 1) {
-            int m = THOU * denom / nom;
-            printf("r reversed condition %d ", m);
-            ret.rc = (THOU * lc - m * ld) / (THOU - m);
-            ret.rd = ret.rc;
+            if (denom != 0 && (nom / denom) != 1) {
+                int m = THOU * nom / denom;
+                printf("rr normal condition %d/%d = %d ", nom, denom, m);
+                ret.rc = (THOU * ld - m * lc) / (THOU - m);
+                ret.rd = ret.rc;
+            } else if (nom != 0 && (denom / nom) != 1) {
+                int m = THOU * denom / nom;
+                printf("rr reversed condition %d ", m);
+                ret.rc = (THOU * lc - m * ld) / (THOU - m);
+                ret.rd = ret.rc;
+            } else {
+                printf("rr odd condition ");
+            }
+        /*
         } else {
-            printf("r odd condition ");
+            if (denom != 0 && (nom / denom) != 1) {
+                int m = THOU * nom / denom;
+                printf("rl normal condition %d/%d = %d ", nom, denom, m);
+                ret.rc = (THOU * ld - m * lc) / (THOU - m);
+                ret.rd = ret.rc;
+            } else if (nom != 0 && (denom / nom) != 1) {
+                int m = THOU * denom / nom;
+                printf("rl reversed condition %d ", m);
+                ret.rc = (THOU * lc - m * ld) / (THOU - m);
+                ret.rd = ret.rc;
+            } else {
+                printf("rl odd condition ");
+            }
         }
+         */
         printf("%d %d\n", ret.rc, ret.rd);
     }
 
-    if (!left_in_view && right_in_view) {
-        int nom = (ld - rd);
-        int denom = (lc - rc);
-        if (denom != 0 && (nom / denom) != 1) {
+    if (!left_in_view && ld < 1) {
+        int nom = (rd - ld);
+        int denom = (rc - lc);
+        if (denom != 0 && (nom / denom) != -1) {
             int m = THOU * nom / denom;
             printf("l normal condition %d/%d = %d ", nom, denom, m);
-            ret.lc = (THOU * rd - m * rc) / (THOU - m);
+            ret.lc = -(THOU * ld - m * lc) / (THOU + m);
             ret.ld = -ret.lc;
-        } else if (nom != 0 && (denom / nom) != 1) {
+        } else if (nom != 0 && (denom / nom) != -1) {
             int m = THOU * denom / nom;
             printf("l reversed condition %d ", m);
-            ret.lc = (THOU * rc - m * rd) / (THOU - m);
+            ret.lc = (THOU * lc - m * ld) / (THOU + m);
             ret.ld = -ret.lc;
         } else {
             printf("l odd condition ");
@@ -119,13 +148,29 @@ struct cpanel cpanel_clip(struct cpanel cpanel) {
     return ret;
 }
 
+void cpanel_print(char *prefix, struct cpanel cpanel) {
+    printf("%s: panel(lc:%d,ld:%d,rc:%d,rd:%d,colour:%d)\n", prefix, cpanel.lc, cpanel.ld, cpanel.rc, cpanel.rd, cpanel.colour);
+}
+
 void cpanels_to_panels(struct cpanels *cpanels, struct panels *panels_out) {
     panels_out->num = 0;
     struct panel *panel = panels_out->ob;
     for (int i = 0; i < cpanels->num; i++) {
 	    struct cpanel *cpanel = cpanels->ob + i;
 
+        cpanel_print("before", *cpanel);
+        int cross = cpanel->lc * cpanel->rd - cpanel->ld * cpanel->rc;
+        printf(" X %d\n", cross);
+        if (cross >= 1) {
+            continue;
+        }
+
         struct cpanel clipped = cpanel_clip(*cpanel);
+        cpanel_print(" after", clipped);
+
+        if (clipped.colour == 0) { // mark for cpanels to discard
+            continue;
+        }
 
         panel->lp = (uint16_t) ((HALF_SCREEN_WIDTH * clipped.lc / clipped.ld) + HALF_SCREEN_WIDTH);
         panel->lh = (uint16_t) (HALF_SCREEN_WIDTH * THOU / 2 / clipped.ld);
@@ -134,17 +179,10 @@ void cpanels_to_panels(struct cpanels *cpanels, struct panels *panels_out) {
 	    panel->colour = cpanel->colour;
 	    printf("%d %d %d %d %d\n", panel->lp, panel->lh, panel->rp, panel->rh, panel->colour);
 
-        // exclude back faces
-        if (panel->lp >= panel->rp) {
-            printf(" X\n");
-            continue;
-        } else {
-            printf(" Y\n");
+        if (panel->lh < 0 || panel->rh < 0) {
+            exit(-1);
         }
-
-
-	
-	panel++;
+        panel++;
     }
     panels_out->num = panel - panels_out->ob;
 }
@@ -203,7 +241,7 @@ void sort_panels_by_distance(struct panels *panels) {
         for (int i = 0; i < panels->num - 1; i++) {
             struct panel *a = panels->ob + i;
             struct panel *b = panels->ob + i + 1;
-            if ((b->lh + b->rh) > (a->lh + a->rh)) {
+            if (MIN(b->lh, b->rh) > MIN(a->lh, a->rh)) {
                 tmp = *a;
                 *a = *b;
                 *b = tmp;

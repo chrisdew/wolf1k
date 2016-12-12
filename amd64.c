@@ -11,14 +11,14 @@
 static struct wpoles wpoles = {
         MAX_WALLS,
         {
-                {0 * THOU, 3 * THOU, CYAN},
-                {0 * THOU, 2 * THOU, YELLOW},
-                {1 * THOU, 2 * THOU, GREEN},
-                {1 * THOU, 3 * THOU, RED},
-                {2 * THOU, 3 * THOU, CYAN},
-                {2 * THOU, 1 * THOU, YELLOW},
-                {-1 * THOU, 1 * THOU, GREEN},
-                {-1 * THOU, 3 * THOU, RED},
+                {0 * THOU, 3 * THOU, 1},
+                {0 * THOU, 2 * THOU, 2},
+                {1 * THOU, 2 * THOU, 3},
+                {1 * THOU, 3 * THOU, 4},
+                {2 * THOU, 3 * THOU, 5},
+                {2 * THOU, 1 * THOU, 6},
+                {-1 * THOU, 1 * THOU, 7},
+                {-1 * THOU, 3 * THOU, 4},
         }
 };
 struct camera camera = {.x = 0, .y = 0, .facing = 0};
@@ -103,14 +103,7 @@ int main() {
     int loop = 1;
     int16_t dx, dy, mc, ms;
     while(loop) {
-        printf("loop\n");
-        wpoles_to_cpoles(&wpoles, &camera, &cpoles);
-        cpoles_to_cpanels(&cpoles, &cpanels);
-        cpanels_to_panels(&cpanels, &panels);
-        sort_panels_by_distance(&panels);
-        printf("panels.num == %d\n", panels.num);
-        draw_frame(renderer, &panels, &crit_points, &changes);
-        SDL_Delay(1600);
+        SDL_Delay(16);
         SDL_Event event;
         while (SDL_PollEvent(&event)) {
             if (event.type == SDL_QUIT) {
@@ -129,8 +122,8 @@ int main() {
                         break;
                     case SDLK_DOWN:
                         printf("down\n");
-                        mc = mulcos(100, camera.facing);
-                        ms = mulsine(100, camera.facing);
+                        mc = mulcos(300, camera.facing);
+                        ms = mulsine(300, camera.facing);
                         dx = -ms;
                         dy = mc;
                         camera.x -= dx;
@@ -139,8 +132,8 @@ int main() {
                         break;
                     case SDLK_UP:
                         printf("up\n");
-                        mc = mulcos(100, camera.facing);
-                        ms = mulsine(100, camera.facing);
+                        mc = mulcos(300, camera.facing);
+                        ms = mulsine(300, camera.facing);
                         dx = -ms;
                         dy = mc;
                         camera.x += dx;
@@ -151,6 +144,13 @@ int main() {
                         break;
                 }
             }
+            printf("\n\n");
+            wpoles_to_cpoles(&wpoles, &camera, &cpoles);
+            cpoles_to_cpanels(&cpoles, &cpanels);
+            cpanels_to_panels(&cpanels, &panels);
+            sort_panels_by_distance(&panels);
+            printf("panels.num == %d\n", panels.num);
+            draw_frame(renderer, &panels, &crit_points, &changes);
         }
     }
 
